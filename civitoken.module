@@ -1,0 +1,64 @@
+<?php
+/*
+ * implementation of CiviCRM hook
+ */
+function civitoken_civicrm_tokens( &$tokens ) {
+   $tokenfunctions = civitoken_initialize();
+   $civitokens = array();
+   foreach ($tokenfunctions  as $token) {
+     $fn = $token . '_civitoken_declare';
+     $tokens[$token] = array_merge($civitokens,$fn($token));
+   }
+    $tokens['civitokens']= $civitokens;
+}
+
+/*
+ * implementation of CiviCRM hook
+ */
+function civitoken_civicrm_tokenValues( &$values, &$contactIDs, $jobID ) {
+
+   $tokenfunctions = civitoken_initialize();
+   foreach ($tokenfunctions  as $token) {
+     $fn = $token . '_civitoken_get';
+     
+    if ( is_array( $contactIDs ) ) {
+        foreach ($contactIDs as $contactID){
+          $value =& $values[$contactID];
+          $fn($contactID,$value);
+       }
+    } else {
+          // I don't know when this situation occurs but is in demo code
+          $value =& $values;
+          $fn($contactIDs,$value);
+    }
+   }
+
+  }
+
+/*
+ * Gather functions from tokens in tokens folder
+ */
+function civitoken_initialize() {
+
+  static $civitoken_init = null;
+  static $tokens = array();
+  if ($civitoken_init){
+    return $tokens;
+  }
+  static $tokenFiles = null;
+  
+  $config = CRM_Core_Config::singleton();
+  if(!is_array($tokenFiles)){
+    $directory = !empty($config->customPHPPathDir)?$config->customPHPPathDir . '/tokens':drupal_get_path('module', 'civitoken') . '/tokens';
+    $tokenFiles = file_scan_directory($directory , '/.*\.inc$/');
+  }
+
+  foreach ($tokenFiles as $file) {
+    require_once $directory ."/". $file->filename ;
+    $tokens[] = $file->name;
+  }   
+  $civitoken_init = 1;
+  return $tokens;
+}
+
+

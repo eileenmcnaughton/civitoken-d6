@@ -1,0 +1,7 @@
+; $Id$
+name = civitoken
+description = Various tokens for CiviCRM
+core = 6.x
+package = CiviCRM
+version = 1.0
+dependencies[] = civicrm
