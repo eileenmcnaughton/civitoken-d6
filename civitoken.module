@@ -9,27 +9,28 @@ function civitoken_civicrm_tokens( &$tokens ) {
      $fn = $token . '_civitoken_declare';
      $tokens[$token] = array_merge($civitokens,$fn($token));
    }
-    $tokens['civitokens']= $civitokens;
 }
 
 /*
  * implementation of CiviCRM hook
  */
-function civitoken_civicrm_tokenValues( &$values, &$contactIDs, $jobID ) {
-
+function civitoken_civicrm_tokenValues( &$values, &$contactIDs, $jobID, $tokens = array(), $context = null) {
    $tokenfunctions = civitoken_initialize();
+   if(!empty($context)){
+     // ie. 4.0 & earlier doesn't send context OR tokens
+     $tokenfunctions = array_flip(array_intersect_key(array_flip($tokenfunctions), $tokens));
+   }
    foreach ($tokenfunctions  as $token) {
      $fn = $token . '_civitoken_get';
-     
     if ( is_array( $contactIDs ) ) {
         foreach ($contactIDs as $contactID){
           $value =& $values[$contactID];
-          $fn($contactID,$value);
+          $fn($contactID,$value, $context);
        }
     } else {
           // I don't know when this situation occurs but is in demo code
           $value =& $values;
-          $fn($contactIDs,$value);
+          $fn($contactIDs,$value, $context);
     }
    }
 
@@ -46,15 +47,13 @@ function civitoken_initialize() {
     return $tokens;
   }
   static $tokenFiles = null;
-  
   $config = CRM_Core_Config::singleton();
   if(!is_array($tokenFiles)){
-    $directory = !empty($config->customPHPPathDir)?$config->customPHPPathDir . '/tokens':drupal_get_path('module', 'civitoken') . '/tokens';
-    $tokenFiles = file_scan_directory($directory , '/.*\.inc$/');
+    $directory = !empty($config->customPHPPathDir)?$config->customPHPPathDir . 'tokens':drupal_get_path('module', 'civitoken') . '/tokens';
+    $tokenFiles = file_scan_directory($directory , '\.inc$');
   }
-
   foreach ($tokenFiles as $file) {
-    require_once $directory ."/". $file->filename ;
+    require_once $file->filename ;
     $tokens[] = $file->name;
   }   
   $civitoken_init = 1;
